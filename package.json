@@ -1,8 +1,8 @@
 {
   "name": "spark-agent",
   "version": "1.0.0",
-  "description": "Spark Terminal AI Coding Agent — an agentic CLI that reads, writes, and builds code using Claude, GPT, Gemini, Grok, and DeepSeek",
-  "keywords": ["ai", "agent", "cli", "coding", "claude", "gpt", "spark"],
+  "description": "Spark Code 1.2 — Terminal AI Coding Agent that auto-routes tasks across GPT, Gemini, Grok, and DeepSeek",
+  "keywords": ["ai", "agent", "cli", "coding", "gpt", "gemini", "grok", "deepseek", "spark"],
   "author": "Spark AI <amrmareh@gmail.com>",
   "license": "MIT",
   "homepage": "https://github.com/AmrMareh/Spark-Code#readme",
@@ -31,7 +31,6 @@
     "prepublishOnly": "node --check index.js src/agent.js src/ai.js src/tools.js src/supabase.js src/ui.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "@supabase/supabase-js": "^2.90.1",
     "chalk": "^5.3.0",
     "dotenv": "^17.2.3",
