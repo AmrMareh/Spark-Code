@@ -1,6 +1,6 @@
 {
   "name": "spark-code",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Spark Code 1.2 — Terminal AI Coding Agent that auto-routes tasks across GPT, Gemini, Grok, and DeepSeek",
   "keywords": [
     "ai",
@@ -18,7 +18,7 @@
   "homepage": "https://github.com/AmrMareh/Spark-Code#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AmrMareh/Spark-Code.git"
+    "url": "git+https://github.com/AmrMareh/Spark-Code.git"
   },
   "bugs": {
     "url": "https://github.com/AmrMareh/Spark-Code/issues"

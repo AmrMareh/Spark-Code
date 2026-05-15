@@ -3,10 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import {
   c, printSection, printTool, printError, printSuccess,
-  printInfo, printWarn, printHelp, startSpinner, stopSpinner,
+  printInfo, printHelp, startSpinner, stopSpinner,
   promptLine, startStarField, stopStarField,
 } from './ui.js';
-import { callAI, parseToolCall, isToolOnly, routeTask, lastEngine, getEngineLabel } from './ai.js';
+import { callAI, parseToolCall, isToolOnly } from './ai.js';
 import { dispatchTool, summarizeWork } from './tools.js';
 import {
   createAgentSession, logMessage, logBuild,
