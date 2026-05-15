@@ -7,6 +7,7 @@ import {
   promptLine, startStarField, stopStarField,
 } from './ui.js';
 import { callAI, parseToolCall, isToolOnly } from './ai.js';
+import { logout, loadAuth } from './auth.js';
 import { dispatchTool, summarizeWork } from './tools.js';
 import {
   createAgentSession, logMessage, logBuild,
@@ -108,6 +109,17 @@ async function handleCommand(input) {
           console.log();
         });
       }
+      return true;
+    }
+
+    case '/logout':
+      await logout();
+      process.exit(0);
+
+    case '/whoami': {
+      const auth = loadAuth();
+      if (auth) printInfo(`Signed in as ${c.spark(auth.email)}`);
+      else printInfo('Not signed in');
       return true;
     }
 

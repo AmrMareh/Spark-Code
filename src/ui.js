@@ -229,6 +229,8 @@ export function printHelp() {
   printSection('Commands');
   const cmds = [
     ['/help',         'Show this help'],
+    ['/whoami',       'Show who you are signed in as'],
+    ['/logout',       'Sign out of Spark'],
     ['/cd <path>',    'Change working directory'],
     ['/ls [path]',    'List directory contents'],
     ['/history',      'Show session history'],

@@ -3,45 +3,57 @@ import dotenv from 'dotenv';
 import path from 'path';
 import os from 'os';
 
-// Load .env from current directory first, then home directory as fallback
+// Load .env — cwd first, then ~/.spark-code/.env
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 dotenv.config({ path: path.join(os.homedir(), '.env') });
 dotenv.config({ path: path.join(os.homedir(), '.spark-code', '.env') });
-import { printBanner, startStarField, stopStarField, printError, c } from './src/ui.js';
-import { initSession, runREPL } from './src/agent.js';
 
-// ─── Startup ──────────────────────────────────────────────────────────────────
+import { printBanner, startStarField, stopStarField, printError, printInfo, printSuccess, c } from './src/ui.js';
+import { initSession, runREPL } from './src/agent.js';
+import { isLoggedIn, login, logout, loadAuth } from './src/auth.js';
+
 async function main() {
-  // Parse CLI flags
   const args = process.argv.slice(2);
-  const modelFlag = args.find(a => a.startsWith('--model='));
-  if (modelFlag) {
-    const { setModel } = await import('./src/ai.js');
-    setModel(modelFlag.split('=')[1]);
+
+  // Handle logout command
+  if (args.includes('logout')) {
+    await logout();
+    process.exit(0);
   }
 
-  // Print animated banner with star field
+  // Print banner + star animation
   printBanner();
-
-  // Kick off a brief star animation above the prompt
   startStarField(2);
-
-  // Give stars a moment to sparkle before the prompt appears
   await new Promise(r => setTimeout(r, 1200));
   stopStarField();
 
-  // Init DB session
-  try {
-    await initSession();
-  } catch (e) {
-    // Non-fatal — continue without DB
-    printError(`DB init skipped: ${e.message}`);
+  // ── Auth gate ───────────────────────────────────────────────────────────
+  if (!isLoggedIn()) {
+    console.log(
+      '  ' + c.star('✦ ') +
+      c.white.bold('Sign in to Spark to continue') +
+      '\n'
+    );
+    try {
+      await login();
+    } catch (e) {
+      printError(`Login failed: ${e.message}`);
+      process.exit(1);
+    }
+  } else {
+    const auth = loadAuth();
+    printInfo(`Signed in as ${c.spark(auth.email)}`);
   }
 
-  // Print quick tip
+  // ── Init DB session ─────────────────────────────────────────────────────
+  try {
+    await initSession();
+  } catch {
+    // Non-fatal — continue without DB
+  }
+
   console.log(c.muted('  Type /help for commands, or just ask me anything.\n'));
 
-  // Start the interactive REPL
   await runREPL();
 }
 
