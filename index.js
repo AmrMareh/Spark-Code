@@ -1,5 +1,12 @@
 #!/usr/bin/env node
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import os from 'os';
+
+// Load .env from current directory first, then home directory as fallback
+dotenv.config({ path: path.join(process.cwd(), '.env') });
+dotenv.config({ path: path.join(os.homedir(), '.env') });
+dotenv.config({ path: path.join(os.homedir(), '.spark-code', '.env') });
 import { printBanner, startStarField, stopStarField, printError, c } from './src/ui.js';
 import { initSession, runREPL } from './src/agent.js';
 
