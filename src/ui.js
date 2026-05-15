@@ -142,7 +142,7 @@ export function printBanner() {
     c.star(' ✦')
   );
   console.log(
-    '  ' + c.muted('Auto-routing · GPT · Gemini · Grok · DeepSeek')
+    '  ' + c.muted('Auto-routing · GPT-5.3 Codex · Gemini · Grok · DeepSeek')
   );
   console.log(topStars);
   console.log();
