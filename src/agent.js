@@ -6,7 +6,7 @@ import {
   printInfo, printWarn, printHelp, startSpinner, stopSpinner,
   promptLine, startStarField, stopStarField,
 } from './ui.js';
-import { callAI, parseToolCall, isToolOnly, setModel, getModelInfo, MODELS, activeModel } from './ai.js';
+import { callAI, parseToolCall, isToolOnly, routeTask, lastEngine, getEngineLabel } from './ai.js';
 import { dispatchTool, summarizeWork } from './tools.js';
 import {
   createAgentSession, logMessage, logBuild,
@@ -28,17 +28,16 @@ let commandsRun  = [];
 export async function initSession() {
   const user = await getCurrentUser();
   userId = user?.id || null;
-  const info = getModelInfo();
 
   sessionId = await createAgentSession({
     userId,
-    model: info.id,
+    model: 'spark-code-1.2',
     cwd,
   });
 
   printInfo(`Session started${sessionId ? ' · saved to Spark DB' : ' · (offline mode)'}`);
   if (userId) printInfo(`User: ${user.email}`);
-  printInfo(`Model: ${c.spark(info.label)}`);
+  printInfo(`Model: ${c.spark('Spark Code 1.2')}  ${c.muted('(auto-routing enabled)')}`);
   printInfo(`Working dir: ${c.code(cwd)}`);
   console.log();
 }
@@ -54,26 +53,6 @@ async function handleCommand(input) {
     case '/clear':
       process.stdout.write('\x1Bc');
       return true;
-
-    case '/model': {
-      const name = parts[1]?.toLowerCase();
-      if (!name) {
-        printSection('Available models');
-        Object.entries(MODELS).forEach(([key, m]) => {
-          const marker = key === currentModel ? c.star(' ✦ active') : '';
-          console.log(`  ${c.code(key.padEnd(12))} ${c.muted(m.label)}${marker}`);
-        });
-        return true;
-      }
-      if (setModel(name)) {
-        currentModel = name;
-        printSuccess(`Switched to ${getModelInfo().label}`);
-        await logMessage({ sessionId, role: 'system', content: `Model switched to ${name}` });
-      } else {
-        printError(`Unknown model "${name}". Try: ${Object.keys(MODELS).join(', ')}`);
-      }
-      return true;
-    }
 
     case '/cd': {
       const target = parts.slice(1).join(' ') || process.env.HOME;
@@ -192,17 +171,14 @@ async function agentTurn(userInput) {
   while (loopCount < MAX_LOOPS) {
     loopCount++;
 
-    // Stream the AI response
-    startSpinner(getModelInfo().label);
+    // Stream the AI response (callAI prints the routed engine label itself)
     let aiResponse;
     try {
       aiResponse = await callAI(loopCount === 1 ? augmented : history, cwd);
     } catch (e) {
-      stopSpinner();
       printError(`AI error: ${e.message}`);
       return;
     }
-    stopSpinner();
 
     history.push({ role: 'assistant', content: aiResponse });
     await logMessage({ sessionId, role: 'assistant', content: aiResponse });

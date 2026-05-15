@@ -137,11 +137,12 @@ export function printBanner() {
   console.log();
   console.log(
     '  ' + c.star('✦ ') +
-    c.white.bold('Spark Terminal AI Coding Agent') +
+    c.white.bold('Spark Code 1.2') +
+    c.spark('  Terminal AI Coding Agent') +
     c.star(' ✦')
   );
   console.log(
-    '  ' + c.muted('Powered by Claude · GPT · Gemini · Grok · DeepSeek')
+    '  ' + c.muted('Auto-routing · Claude · GPT · Gemini · Grok · DeepSeek')
   );
   console.log(topStars);
   console.log();
@@ -227,14 +228,13 @@ export function printFileDiff(path, oldLines, newLines) {
 export function printHelp() {
   printSection('Commands');
   const cmds = [
-    ['/help',          'Show this help'],
-    ['/model <name>',  'Switch AI model  (claude · gpt · gemini · grok · deepseek)'],
-    ['/cd <path>',     'Change working directory'],
-    ['/ls [path]',     'List directory contents'],
-    ['/history',       'Show session history'],
-    ['/builds',        'Show your saved builds in Spark DB'],
-    ['/clear',         'Clear the screen'],
-    ['/exit  (or q)',  'Exit Spark Agent'],
+    ['/help',         'Show this help'],
+    ['/cd <path>',    'Change working directory'],
+    ['/ls [path]',    'List directory contents'],
+    ['/history',      'Show session history'],
+    ['/builds',       'Show your saved builds in Spark DB'],
+    ['/clear',        'Clear the screen'],
+    ['/exit  (or q)', 'Exit Spark Code 1.2'],
   ];
   cmds.forEach(([cmd, desc]) => {
     console.log('  ' + c.code(cmd.padEnd(22)) + c.muted(desc));
@@ -242,6 +242,7 @@ export function printHelp() {
   console.log();
   printSection('What I can do');
   const caps = [
+    '✦  Auto-routes each task to the best AI engine',
     '✦  Read, create, edit, and delete files',
     '✦  Run shell commands and scripts',
     '✦  Build full apps from a single prompt',
