@@ -3,7 +3,7 @@ import { printAIChunk, printAIEnd, printWarn, printInfo, c } from './ui.js';
 
 // ─── Spark Code 1.2 — internal engine registry ───────────────────────────────
 const ENGINES = {
-  gpt:      { label: 'GPT-5.3 Codex',   id: 'gpt-4o',            provider: 'openai'   },
+  gpt:      { label: 'GPT-5.3 Codex',   id: 'gpt-5.3-codex',     provider: 'openai'   },
   gemini:   { label: 'Gemini 2.0 Flash', id: 'gemini-2.0-flash', provider: 'gemini'   },
   grok:     { label: 'Grok 3',           id: 'grok-3',           provider: 'grok'     },
   deepseek: { label: 'DeepSeek Chat',    id: 'deepseek-chat',    provider: 'deepseek' },
