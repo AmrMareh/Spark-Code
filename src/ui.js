@@ -17,60 +17,33 @@ export const c = {
   bold:    chalk.bold,
 };
 
-// ─── Star field animation ─────────────────────────────────────────────────────
-const STAR_CHARS = ['✦', '✧', '✸', '✹', '★', '⋆', '∗', '·', '✺', '✻'];
-const STAR_COLORS = ['#FFD700', '#FF6B35', '#A78BFA', '#38BDF8', '#00FF88', '#FFB3C6'];
+// ─── Star field — simple spinner-based animation, no cursor movement ─────────
+const STAR_FRAMES = [
+  '  ✦   ·   ✸   ·   ✦   ·   ∗   ·   ✧   ·   ✹   ·   ⋆   ·   ✦',
+  '  ·   ✸   ·   ✦   ·   ✺   ·   ✦   ·   ∗   ·   ✧   ·   ✹   ·',
+  '  ✧   ·   ✦   ·   ⋆   ·   ✸   ·   ✦   ·   ✹   ·   ∗   ·   ✧',
+  '  ·   ✦   ·   ∗   ·   ✧   ·   ✸   ·   ⋆   ·   ✺   ·   ✦   ·',
+];
 
-let starAnimFrame = null;
-let starField = [];
-const COLS = process.stdout.columns || 80;
+let starTimer = null;
+let starFrame  = 0;
 
-function randomStar() {
-  return {
-    x: Math.floor(Math.random() * COLS),
-    char: STAR_CHARS[Math.floor(Math.random() * STAR_CHARS.length)],
-    color: STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)],
-    ttl: Math.floor(Math.random() * 8) + 3,
-    age: 0,
-  };
-}
-
-export function startStarField(rows = 3) {
-  starField = Array.from({ length: 20 }, randomStar);
-
-  // Print initial blank rows
-  process.stdout.write('\n'.repeat(rows));
-
-  starAnimFrame = setInterval(() => {
-    // Move cursor up `rows` lines
-    process.stdout.write(`\x1B[${rows}A`);
-    const lines = Array.from({ length: rows }, () => Array(COLS).fill(' '));
-
-    starField.forEach(star => {
-      const row = star.age % rows;
-      if (star.x < COLS) {
-        const fade = star.age < 2 ? '·' : star.age > star.ttl - 2 ? '·' : star.char;
-        lines[row][star.x] = chalk.hex(star.color)(fade);
-      }
-    });
-
-    lines.forEach(line => {
-      process.stdout.write(line.join('').slice(0, COLS) + '\n');
-    });
-
-    // Age stars and replace dead ones
-    starField = starField
-      .map(s => ({ ...s, age: s.age + 1 }))
-      .filter(s => s.age < s.ttl);
-
-    while (starField.length < 20) starField.push(randomStar());
-  }, 120);
+export function startStarField() {
+  if (!process.stdout.isTTY) return;
+  process.stdout.write('\n');
+  starTimer = setInterval(() => {
+    const f   = STAR_FRAMES[starFrame % STAR_FRAMES.length];
+    const col = starFrame % 2 === 0 ? '#FFD700' : '#FF6B35';
+    process.stdout.write('\r' + chalk.hex(col)(f) + '  ');
+    starFrame++;
+  }, 180);
 }
 
 export function stopStarField() {
-  if (starAnimFrame) {
-    clearInterval(starAnimFrame);
-    starAnimFrame = null;
+  if (starTimer) {
+    clearInterval(starTimer);
+    starTimer = null;
+    process.stdout.write('\r' + ' '.repeat(70) + '\r\n');
   }
 }
 

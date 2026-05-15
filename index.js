@@ -1,39 +1,36 @@
 #!/usr/bin/env node
-import dotenv from 'dotenv';
-import path from 'path';
-import os from 'os';
 
-// Load .env — cwd first, then ~/.spark-code/.env
-dotenv.config({ path: path.join(process.cwd(), '.env') });
-dotenv.config({ path: path.join(os.homedir(), '.env') });
-dotenv.config({ path: path.join(os.homedir(), '.spark-code', '.env') });
+// ── Load env FIRST before any other imports ──────────────────────────────────
+import { config } from 'dotenv';
+import { join } from 'path';
+import { homedir } from 'os';
 
-import { printBanner, startStarField, stopStarField, printError, printInfo, printSuccess, c } from './src/ui.js';
+config({ path: join(process.cwd(), '.env') });
+config({ path: join(homedir(), '.spark-code', '.env') });
+config({ path: join(homedir(), '.env') });
+
+// ── Now import everything else ────────────────────────────────────────────────
+import { printBanner, startStarField, stopStarField, printError, printInfo, c } from './src/ui.js';
 import { initSession, runREPL } from './src/agent.js';
 import { isLoggedIn, login, logout, loadAuth } from './src/auth.js';
 
 async function main() {
   const args = process.argv.slice(2);
 
-  // Handle logout command
   if (args.includes('logout')) {
     await logout();
     process.exit(0);
   }
 
-  // Print banner + star animation
+  // Banner + star animation
   printBanner();
-  startStarField(2);
-  await new Promise(r => setTimeout(r, 1200));
+  startStarField();
+  await new Promise(r => setTimeout(r, 1400));
   stopStarField();
 
-  // ── Auth gate ───────────────────────────────────────────────────────────
+  // Auth gate — must be signed in
   if (!isLoggedIn()) {
-    console.log(
-      '  ' + c.star('✦ ') +
-      c.white.bold('Sign in to Spark to continue') +
-      '\n'
-    );
+    console.log('  ' + c.star('✦ ') + c.white.bold('Sign in to Spark to continue\n'));
     try {
       await login();
     } catch (e) {
@@ -45,19 +42,11 @@ async function main() {
     printInfo(`Signed in as ${c.spark(auth.email)}`);
   }
 
-  // ── Init DB session ─────────────────────────────────────────────────────
-  try {
-    await initSession();
-  } catch {
-    // Non-fatal — continue without DB
-  }
+  // Init DB session (non-fatal)
+  try { await initSession(); } catch {}
 
-  console.log(c.muted('  Type /help for commands, or just ask me anything.\n'));
-
+  console.log(c.muted('\n  Type /help for commands, or just ask me anything.\n'));
   await runREPL();
 }
 
-main().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+main().catch(e => { console.error(e); process.exit(1); });
