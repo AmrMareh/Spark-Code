@@ -121,8 +121,51 @@ Emit ONE \`\`\`tool\`\`\` block per response turn.
 Direct. Fast. Zero filler. You are Spark Code 1.2.`;
 }
 
-// ─── Stream one engine — buffers full response, only prints prose to screen ───
-async function streamEngine(engineKey, messages, cwd) {
+// ─── GPT via Responses API (supports gpt-5.3-codex) ─────────────────────────
+async function streamGPTResponses(messages, cwd) {
+  const apiKey = process.env.SPARKCODE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('No OpenAI API key');
+
+  const client = new OpenAI({ apiKey });
+  const input = [
+    { role: 'system', content: buildSystem(cwd) },
+    ...messages,
+  ];
+
+  // Responses API — supports gpt-5.3-codex
+  const stream = await client.responses.create({
+    model: 'gpt-5.3-codex',
+    input,
+    stream: true,
+    max_output_tokens: 8192,
+  });
+
+  let full = '';
+  let inToolBlock = false;
+  let toolBuf = '';
+
+  for await (const event of stream) {
+    const text = event.delta ?? event.output_text ?? '';
+    if (!text) continue;
+    full += text;
+
+    // Suppress tool blocks from screen
+    if (text.includes('```tool') || inToolBlock) {
+      inToolBlock = true;
+      toolBuf += text;
+      if (toolBuf.includes('```\n') || toolBuf.endsWith('```')) {
+        inToolBlock = false;
+        toolBuf = '';
+      }
+      continue;
+    }
+    printAIChunk(text);
+  }
+  return full;
+}
+
+// ─── Other engines via chat completions ──────────────────────────────────────
+async function streamChatEngine(engineKey, messages, cwd) {
   const engine = ENGINES[engineKey];
   const apiKey = engine.apiKey();
   if (!apiKey) throw new Error(`No API key for ${engineKey}`);
@@ -144,57 +187,58 @@ async function streamEngine(engineKey, messages, cwd) {
       });
 
       let full = '';
-      let buffer = '';
       let inToolBlock = false;
+      let toolBuf = '';
 
       for await (const chunk of stream) {
         const text = chunk.choices[0]?.delta?.content || '';
         full += text;
-        buffer += text;
 
-        // Detect entering a tool block — suppress from screen
-        if (buffer.includes('```tool')) inToolBlock = true;
-        if (inToolBlock) {
-          // Once tool block ends, clear and continue suppressing
-          if (buffer.includes('```\n') || buffer.endsWith('```')) {
+        if (text.includes('```tool') || inToolBlock) {
+          inToolBlock = true;
+          toolBuf += text;
+          if (toolBuf.includes('```\n') || toolBuf.endsWith('```')) {
             inToolBlock = false;
-            buffer = '';
+            toolBuf = '';
           }
           continue;
         }
-
-        // Only print clean prose — not code blocks, not JSON
-        if (!inToolBlock) {
-          printAIChunk(text);
-          buffer = '';
-        }
+        printAIChunk(text);
       }
-
       return full;
     } catch {
-      // Try next model silently
+      // try next model id
     }
   }
-
   throw new Error(`All model IDs failed for ${engineKey}`);
 }
 
-// ─── Main call — silent routing + fallback ────────────────────────────────────
+// ─── Main call — gpt-5.3-codex first, silent fallback ────────────────────────
 export async function callAI(messages, cwd, forcedEngine = null) {
   const lastUser = [...messages].reverse().find(m => m.role === 'user');
   const primary = forcedEngine || routeTask(lastUser?.content || '');
-  const order = [primary, ...['gpt', 'gemini', 'deepseek', 'grok'].filter(e => e !== primary)];
 
   startSpinner('Thinking');
+
+  // GPT always tries gpt-5.3-codex via Responses API first
+  if (primary === 'gpt' || !forcedEngine) {
+    try {
+      stopSpinner();
+      const response = await streamGPTResponses(messages, cwd);
+      printAIEnd();
+      return response;
+    } catch { /* fall through to chat engines */ }
+  }
+
+  // Fallback order for non-GPT tasks or if Responses API fails
+  const order = [primary, ...['gemini', 'deepseek', 'grok', 'gpt'].filter(e => e !== primary)];
   for (const engine of order) {
     try {
       stopSpinner();
-      const response = await streamEngine(engine, messages, cwd);
+      const response = await streamChatEngine(engine, messages, cwd);
       printAIEnd();
       return response;
-    } catch {
-      // Try next silently
-    }
+    } catch { /* try next */ }
   }
 
   stopSpinner();
