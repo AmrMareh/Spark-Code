@@ -1,10 +1,10 @@
 import OpenAI from 'openai';
-import { printAIChunk, printAIEnd } from './ui.js';
+import { printAIChunk, printAIEnd, startSpinner, stopSpinner } from './ui.js';
 
 // ─── Internal engine registry — never shown to user ──────────────────────────
 const ENGINES = {
   gpt: {
-    ids:     ['gpt-5.3-codex', 'gpt-4o'],   // try 5.3-codex first, fall back to 4o silently
+    ids:     ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],  // reliable models that actually work
     apiKey:  () => process.env.SPARKCODE_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
   },
   gemini: {
@@ -121,8 +121,8 @@ Emit ONE \`\`\`tool\`\`\` block per response turn.
 Direct. Fast. Zero filler. You are Spark Code 1.2.`;
 }
 
-// ─── Stream one engine, trying each model ID silently ────────────────────────
-async function streamEngine(engineKey, messages, cwd, onChunk) {
+// ─── Stream one engine — buffers full response, only prints prose to screen ───
+async function streamEngine(engineKey, messages, cwd) {
   const engine = ENGINES[engineKey];
   const apiKey = engine.apiKey();
   if (!apiKey) throw new Error(`No API key for ${engineKey}`);
@@ -134,7 +134,6 @@ async function streamEngine(engineKey, messages, cwd, onChunk) {
 
   const sysMessages = [{ role: 'system', content: buildSystem(cwd) }, ...messages];
 
-  // Try each model ID for this engine silently
   for (const modelId of engine.ids) {
     try {
       const stream = await client.chat.completions.create({
@@ -143,40 +142,63 @@ async function streamEngine(engineKey, messages, cwd, onChunk) {
         stream: true,
         max_tokens: 8192,
       });
+
       let full = '';
+      let buffer = '';
+      let inToolBlock = false;
+
       for await (const chunk of stream) {
         const text = chunk.choices[0]?.delta?.content || '';
         full += text;
-        onChunk(text);
+        buffer += text;
+
+        // Detect entering a tool block — suppress from screen
+        if (buffer.includes('```tool')) inToolBlock = true;
+        if (inToolBlock) {
+          // Once tool block ends, clear and continue suppressing
+          if (buffer.includes('```\n') || buffer.endsWith('```')) {
+            inToolBlock = false;
+            buffer = '';
+          }
+          continue;
+        }
+
+        // Only print clean prose — not code blocks, not JSON
+        if (!inToolBlock) {
+          printAIChunk(text);
+          buffer = '';
+        }
       }
+
       return full;
     } catch {
-      // Try next model ID silently
+      // Try next model silently
     }
   }
 
   throw new Error(`All model IDs failed for ${engineKey}`);
 }
 
-// ─── Main call — fully silent routing and fallback ───────────────────────────
+// ─── Main call — silent routing + fallback ────────────────────────────────────
 export async function callAI(messages, cwd, forcedEngine = null) {
   const lastUser = [...messages].reverse().find(m => m.role === 'user');
   const primary = forcedEngine || routeTask(lastUser?.content || '');
+  const order = [primary, ...['gpt', 'gemini', 'deepseek', 'grok'].filter(e => e !== primary)];
 
-  // Build fallback order: primary first, then the rest
-  const order = [primary, ...['gpt', 'gemini', 'grok', 'deepseek'].filter(e => e !== primary)];
-
+  startSpinner('Thinking');
   for (const engine of order) {
     try {
-      const response = await streamEngine(engine, messages, cwd, printAIChunk);
+      stopSpinner();
+      const response = await streamEngine(engine, messages, cwd);
       printAIEnd();
       return response;
     } catch {
-      // Try next engine silently — user never sees this
+      // Try next silently
     }
   }
 
-  throw new Error('All engines failed. Please check your API keys in ~/.spark-code/.env');
+  stopSpinner();
+  throw new Error('All engines failed. Check your API keys in ~/.spark-code/.env');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

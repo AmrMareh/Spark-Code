@@ -3,7 +3,7 @@ import path from 'path';
 import { execSync, exec } from 'child_process';
 import { promisify } from 'util';
 import { glob } from 'glob';
-import { printTool, printFileDiff, printError, printSuccess, printInfo, c } from './ui.js';
+import { printTool, printError, printSuccess, printInfo, c } from './ui.js';
 
 const execAsync = promisify(exec);
 
@@ -29,23 +29,12 @@ export async function readFile(params, cwd) {
 // ─── write_file ───────────────────────────────────────────────────────────────
 export async function writeFile(params, cwd) {
   const abs = path.resolve(cwd, params.path);
-  printTool('Write', params.path);
-
-  // Show diff if file already exists
-  let oldLines = [];
-  if (fs.existsSync(abs)) {
-    oldLines = fs.readFileSync(abs, 'utf8').split('\n');
-  }
-
+  const existed = fs.existsSync(abs);
   try {
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, params.content, 'utf8');
-    const newLines = params.content.split('\n');
-    if (oldLines.length > 0) {
-      printFileDiff(params.path, oldLines, newLines);
-    } else {
-      printSuccess(`Written ${newLines.length} lines`);
-    }
+    const lines = params.content.split('\n').length;
+    printTool(existed ? 'Write' : 'Create', params.path, `${lines} lines`);
     return ok(`Written: ${params.path}`);
   } catch (e) {
     printError(`Cannot write: ${e.message}`);
@@ -56,15 +45,11 @@ export async function writeFile(params, cwd) {
 // ─── create_file ─────────────────────────────────────────────────────────────
 export async function createFile(params, cwd) {
   const abs = path.resolve(cwd, params.path);
-  printTool('Create', params.path);
-  if (fs.existsSync(abs)) {
-    printError(`File already exists: ${params.path}  (use write_file to overwrite)`);
-    return err('File already exists');
-  }
   try {
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, params.content || '', 'utf8');
-    printSuccess(`Created ${params.path}`);
+    const lines = (params.content || '').split('\n').length;
+    printTool('Create', params.path, `${lines} lines`);
     return ok(`Created: ${params.path}`);
   } catch (e) {
     printError(`Cannot create: ${e.message}`);
@@ -210,10 +195,8 @@ export async function patchFile(params, cwd) {
     const patched = params.replace_all
       ? content.split(oldStr).join(newStr)
       : content.replace(oldStr, newStr);
-    const oldLines = content.split('\n');
-    const newLines = patched.split('\n');
     fs.writeFileSync(abs, patched, 'utf8');
-    printFileDiff(params.path, oldLines, newLines);
+    printTool('Write', params.path, 'patched');
     return ok(`Patched: ${params.path}`);
   } catch (e) {
     printError(`patch_file failed: ${e.message}`);
