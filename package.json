@@ -15,13 +15,13 @@
   ],
   "author": "Okran Ai",
   "license": "MIT",
-  "homepage": "https://github.com/AmrMareh/Spark-Code#readme",
+  "homepage": "https://github.com/AmrMareh/Okran-Code#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AmrMareh/Spark-Code.git"
+    "url": "git+https://github.com/AmrMareh/Okran-Code.git"
   },
   "bugs": {
-    "url": "https://github.com/AmrMareh/Spark-Code/issues"
+    "url": "https://github.com/AmrMareh/Okran-Code/issues"
   },
   "type": "module",
   "main": "index.js",
