@@ -355,7 +355,7 @@ export async function fetchUrl(params) {
   printTool('Search', params.url);
   try {
     const res = await fetch(params.url, {
-      headers: { 'User-Agent': 'Spark-Agent/1.0' },
+      headers: { 'User-Agent': 'Okran-Agent/1.0' },
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return err(`HTTP ${res.status}`);

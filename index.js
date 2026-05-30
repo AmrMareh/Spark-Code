@@ -6,7 +6,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 
 config({ path: join(process.cwd(), '.env') });
-config({ path: join(homedir(), '.spark-code', '.env') });
+config({ path: join(homedir(), '.okran-code', '.env') });
 config({ path: join(homedir(), '.env') });
 
 // ── Now import everything else ────────────────────────────────────────────────
@@ -30,7 +30,7 @@ async function main() {
 
   // Auth gate — must be signed in
   if (!isLoggedIn()) {
-    console.log('  ' + c.star('✦ ') + c.white.bold('Sign in to Spark to continue\n'));
+    console.log('  ' + c.star('✦ ') + c.white.bold('Sign in to Okran to continue\n'));
     try {
       await login();
     } catch (e) {
@@ -45,7 +45,7 @@ async function main() {
   // Init DB session (non-fatal)
   try { await initSession(); } catch {}
 
-  console.log(c.muted('\n  Type /help for commands, or just ask me anything.\n'));
+  console.log(c.muted('\n  Type /help for commands, or just ask Okran anything.\n'));
   await runREPL();
 }
 

@@ -6,15 +6,18 @@ import path from 'path';
 import os from 'os';
 import { c, printSuccess, printError, printInfo, startSpinner, stopSpinner } from './ui.js';
 
-const AUTH_FILE  = path.join(os.homedir(), '.spark-code', 'auth.json');
+const AUTH_FILE  = path.join(os.homedir(), '.okran-code', 'auth.json');
 const APP_URL    = 'https://sparkchat.live';
 const POLL_MS    = 2000;
 const EXPIRE_MS  = 10 * 60 * 1000; // 10 minutes
 
 function getSupabase() {
+  // Service role needed here — auth bootstrap writes to DB before any user session exists.
+  // This key must NEVER be used in supabase.js or any post-login code.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    key,
     { auth: { persistSession: false } }
   );
 }
@@ -88,7 +91,7 @@ export async function login() {
 
   // 3. Open browser
   const authUrl = `${APP_URL}/cli-auth?device=${deviceCode}`;
-  console.log('\n' + c.star('  ✦ ') + c.white.bold('Opening Spark in your browser...'));
+  console.log('\n' + c.star('  ✦ ') + c.white.bold('Opening Okran in your browser...'));
   console.log('  ' + c.muted('If it didn\'t open, go to:'));
   console.log('  ' + c.code(authUrl) + '\n');
   openBrowser(authUrl);
@@ -129,7 +132,7 @@ export async function login() {
     if (attempt < MAX_PIN_ATTEMPTS) {
       printError(`Incorrect code. ${MAX_PIN_ATTEMPTS - attempt} attempt(s) remaining.`);
     } else {
-      printError('Too many incorrect attempts. Please run spark-code again to retry.');
+      printError('Too many incorrect attempts. Please run okran again to retry.');
       await db.from('spark_cli_sessions').delete().eq('device_code', deviceCode);
       process.exit(1);
     }

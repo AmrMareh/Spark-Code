@@ -5,11 +5,11 @@ import { printAIChunk, printAIEnd, startSpinner, stopSpinner } from './ui.js';
 const ENGINES = {
   gpt: {
     ids:     ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],  // reliable models that actually work
-    apiKey:  () => process.env.SPARKCODE_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+    apiKey:  () => process.env.OKRANCODE_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
   },
   gemini: {
     ids:     ['gemini-2.0-flash', 'gemini-1.5-pro'],
-    apiKey:  () => process.env.GOOGLE_API_KEY || process.env.SPARKCODE_GOOGLE_API_KEY,
+    apiKey:  () => process.env.GOOGLE_API_KEY || process.env.OKRANCODE_GOOGLE_API_KEY,
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
   },
   grok: {
@@ -67,7 +67,7 @@ export function routeTask(input) {
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 function buildSystem(cwd) {
-  return `You are Spark Code 1.2 — the world's most capable terminal AI coding agent.
+  return `You are Okran Code 1.3 — the world's most capable terminal AI coding agent.
 You have FULL access to the user's filesystem and can execute any shell command.
 Current working directory: ${cwd}
 Today: ${new Date().toDateString()}
@@ -141,12 +141,12 @@ Emit ONE \`\`\`tool\`\`\` block per response turn.
 9. End with a summary table of files touched.
 
 ## TONE
-Direct. Fast. Zero filler. You are Spark Code 1.2.`;
+Direct. Fast. Zero filler. You are Okran Code 1.3.`;
 }
 
 // ─── GPT via Responses API (supports gpt-5.3-codex) ─────────────────────────
 async function streamGPTResponses(messages, cwd) {
-  const apiKey = process.env.SPARKCODE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OKRANCODE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('No OpenAI API key');
 
   const client = new OpenAI({ apiKey });
@@ -265,7 +265,7 @@ export async function callAI(messages, cwd, forcedEngine = null) {
   }
 
   stopSpinner();
-  throw new Error('All engines failed. Check your API keys in ~/.spark-code/.env');
+  throw new Error('All engines failed. Check your API keys in ~/.okran-code/.env');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

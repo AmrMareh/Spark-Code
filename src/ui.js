@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import readline from 'readline';
 
-// ─── Colour palette matching Spark's brand ───────────────────────────────────
+// ─── Colour palette matching Okran's brand ───────────────────────────────────
 export const c = {
-  spark:   chalk.hex('#FF6B35'),        // Spark orange
+  spark:   chalk.hex('#FF6B35'),        // Okran orange
   star:    chalk.hex('#FFD700'),        // Gold star
   dim:     chalk.hex('#4A4A6A'),        // muted purple-grey
   code:    chalk.hex('#7FDBCA'),        // teal for code/files
@@ -92,27 +92,27 @@ export function printBanner() {
   console.log(topStars);
   console.log();
   console.log(
-    c.spark.bold('  ███████╗██████╗  █████╗ ██████╗ ██╗  ██╗') + '  ' + c.star('✦')
+    c.spark.bold('   ██████╗ ██╗  ██╗██████╗  █████╗ ███╗   ██╗') + '  ' + c.star('✦')
   );
   console.log(
-    c.spark.bold('  ██╔════╝██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝') + '  ' + c.ai('agent')
+    c.spark.bold('  ██╔═══██╗██║ ██╔╝██╔══██╗██╔══██╗████╗  ██║') + '  ' + c.ai('agent')
   );
   console.log(
-    c.spark.bold('  ███████╗██████╔╝███████║██████╔╝█████╔╝ ')
+    c.spark.bold('  ██║   ██║█████╔╝ ██████╔╝███████║██╔██╗ ██║')
   );
   console.log(
-    c.spark.bold('  ╚════██║██╔═══╝ ██╔══██║██╔══██╗██╔═██╗ ')
+    c.spark.bold('  ██║   ██║██╔═██╗ ██╔══██╗██╔══██║██║╚██╗██║')
   );
   console.log(
-    c.spark.bold('  ███████║██║     ██║  ██║██║  ██║██║  ██╗') + '  ' + c.muted('v1.0.0')
+    c.spark.bold('   ╚██████╔╝██║  ██╗██║  ██║██║  ██║██║ ╚████║') + '  ' + c.muted('v1.3.0')
   );
   console.log(
-    c.spark.bold('  ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝')
+    c.spark.bold('    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝')
   );
   console.log();
   console.log(
     '  ' + c.star('✦ ') +
-    c.white.bold('Spark Code 1.2') +
+    c.white.bold('Okran Code 1.3') +
     c.spark('  Terminal AI Coding Agent') +
     c.star(' ✦')
   );
@@ -205,15 +205,15 @@ export function printHelp() {
   const cmds = [
     ['/help',           'Show this help'],
     ['/whoami',         'Show who you are signed in as'],
-    ['/logout',         'Sign out of Spark'],
+    ['/logout',         'Sign out of Okran'],
     ['/cd <path>',      'Change working directory'],
     ['/ls [path]',      'List directory contents'],
     ['/open <file>',    'Open a file in your editor or default app'],
     ['/run <file>',     'Run a script directly (.js .ts .py .sh .rb)'],
     ['/history',        'Show session history'],
-    ['/builds',         'Show your saved builds in Spark DB'],
+    ['/builds',         'Show your saved builds in Okran DB'],
     ['/clear',          'Clear the screen'],
-    ['/exit  (or q)',   'Exit Spark Code 1.2'],
+    ['/exit  (or q)',   'Exit Okran Code 1.3'],
   ];
   cmds.forEach(([cmd, desc]) => {
     console.log('  ' + c.code(cmd.padEnd(22)) + c.muted(desc));
@@ -226,7 +226,7 @@ export function printHelp() {
     '✦  Run shell commands and scripts',
     '✦  Build full apps from a single prompt',
     '✦  Explain, refactor, and debug your code',
-    '✦  Save every build to your Spark database',
+    '✦  Save every build to your Okran database',
   ];
   caps.forEach(cap => console.log('  ' + c.spark(cap)));
   console.log();

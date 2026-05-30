@@ -37,13 +37,13 @@ export async function initSession() {
 
   sessionId = await createAgentSession({
     userId,
-    model: 'spark-code-1.2',
+    model: 'okran-code-1.3',
     cwd,
   });
 
-  printInfo(`Session started${sessionId ? ' · saved to Spark DB' : ' · (offline mode)'}`);
+  printInfo(`Session started${sessionId ? ' · saved to Okran DB' : ' · (offline mode)'}`);
   if (userId) printInfo(`User: ${user.email}`);
-  printInfo(`Model: ${c.spark('Spark Code 1.2')}  ${c.muted('(auto-routing enabled)')}`);
+  printInfo(`Model: ${c.spark('Okran Code 1.3')}  ${c.muted('(auto-routing enabled)')}`);
   printInfo(`Working dir: ${c.code(cwd)}`);
   console.log();
 }
@@ -91,7 +91,7 @@ async function handleCommand(input) {
       history.slice(-20).forEach(msg => {
         const role = msg.role === 'user'
           ? c.user('you')
-          : c.spark('spark');
+          : c.spark('okran');
         const preview = msg.content.slice(0, 120).replace(/\n/g, ' ');
         console.log(`  ${role}: ${c.muted(preview)}`);
       });
@@ -99,7 +99,7 @@ async function handleCommand(input) {
     }
 
     case '/builds': {
-      printSection('Your builds in Spark DB');
+      printSection('Your builds in Okran DB');
       const builds = await fetchBuilds(userId, 10);
       if (builds.length === 0) {
         printInfo('No builds recorded yet.');
@@ -192,7 +192,7 @@ function confirmDestructive(rl, toolCall) {
 
   return new Promise(resolve => {
     rl.question(
-      `\n  ${c.warn('⚠ ')}${c.white.bold('Allow Spark to ' + label)}? ${c.muted('[y/N] ')}`,
+      `\n  ${c.warn('⚠ ')}${c.white.bold('Allow Okran to ' + label)}? ${c.muted('[y/N] ')}`,
       answer => resolve(answer.trim().toLowerCase() === 'y')
     );
   });
@@ -348,7 +348,7 @@ export async function runREPL() {
           filesTouched: [...filesTouched],
           commandsRun,
         });
-        console.log('\n' + c.star('  ✦ ') + c.spark.bold('Goodbye! Stay sparked. ✦') + '\n');
+        console.log('\n' + c.star('  ✦ ') + c.spark.bold('Goodbye! Stay sharp. ✦') + '\n');
         stopStarField();
         rl.close();
         return;
