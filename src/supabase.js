@@ -1,14 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import { printWarn, printInfo } from './ui.js';
+import { printWarn } from './ui.js';
+import { loadAuth } from './auth.js';
 
 let supabase = null;
 
 export function getSupabase() {
   if (supabase) return supabase;
 
-  const url  = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key  = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-               process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     printWarn('Supabase not configured — sessions will not be saved to the database');
@@ -119,14 +119,9 @@ export async function fetchBuilds(userId, limit = 10) {
   return data || [];
 }
 
-// ─── Get current Supabase user (if service key supports it) ──────────────────
+// ─── Get current user from local auth file ────────────────────────────────────
 export async function getCurrentUser() {
-  const db = getSupabase();
-  if (!db) return null;
-  try {
-    const { data: { user } } = await db.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
+  const auth = loadAuth();
+  if (!auth?.user_id) return null;
+  return { id: auth.user_id, email: auth.email };
 }

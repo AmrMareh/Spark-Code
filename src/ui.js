@@ -18,6 +18,8 @@ export const c = {
 };
 
 // ─── Star field — simple spinner-based animation, no cursor movement ─────────
+const STAR_CHARS = ['✦', '✸', '✺', '∗', '✧', '✹', '⋆', '·'];
+
 const STAR_FRAMES = [
   '  ✦   ·   ✸   ·   ✦   ·   ∗   ·   ✧   ·   ✹   ·   ⋆   ·   ✦',
   '  ·   ✸   ·   ✦   ·   ✺   ·   ✦   ·   ∗   ·   ✧   ·   ✹   ·',
@@ -201,15 +203,17 @@ export function printFileDiff(path, oldLines, newLines) {
 export function printHelp() {
   printSection('Commands');
   const cmds = [
-    ['/help',         'Show this help'],
-    ['/whoami',       'Show who you are signed in as'],
-    ['/logout',       'Sign out of Spark'],
-    ['/cd <path>',    'Change working directory'],
-    ['/ls [path]',    'List directory contents'],
-    ['/history',      'Show session history'],
-    ['/builds',       'Show your saved builds in Spark DB'],
-    ['/clear',        'Clear the screen'],
-    ['/exit  (or q)', 'Exit Spark Code 1.2'],
+    ['/help',           'Show this help'],
+    ['/whoami',         'Show who you are signed in as'],
+    ['/logout',         'Sign out of Spark'],
+    ['/cd <path>',      'Change working directory'],
+    ['/ls [path]',      'List directory contents'],
+    ['/open <file>',    'Open a file in your editor or default app'],
+    ['/run <file>',     'Run a script directly (.js .ts .py .sh .rb)'],
+    ['/history',        'Show session history'],
+    ['/builds',         'Show your saved builds in Spark DB'],
+    ['/clear',          'Clear the screen'],
+    ['/exit  (or q)',   'Exit Spark Code 1.2'],
   ];
   cmds.forEach(([cmd, desc]) => {
     console.log('  ' + c.code(cmd.padEnd(22)) + c.muted(desc));

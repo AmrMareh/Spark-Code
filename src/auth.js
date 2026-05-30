@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
@@ -14,7 +14,7 @@ const EXPIRE_MS  = 10 * 60 * 1000; // 10 minutes
 function getSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     { auth: { persistSession: false } }
   );
 }
@@ -22,7 +22,7 @@ function getSupabase() {
 // ─── Save / load local auth token ────────────────────────────────────────────
 export function saveAuth(data) {
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
-  fs.writeFileSync(AUTH_FILE, JSON.stringify(data, null, 2));
+  fs.writeFileSync(AUTH_FILE, JSON.stringify(data, null, 2), { mode: 0o600 });
 }
 
 export function loadAuth() {
@@ -50,9 +50,9 @@ export function isLoggedIn() {
 function openBrowser(url) {
   try {
     const platform = process.platform;
-    if (platform === 'darwin') execSync(`open "${url}"`);
-    else if (platform === 'win32') execSync(`start "" "${url}"`);
-    else execSync(`xdg-open "${url}"`);
+    if (platform === 'darwin')      execFileSync('open',     [url]);
+    else if (platform === 'win32')  execFileSync('cmd',      ['/c', 'start', '', url]);
+    else                            execFileSync('xdg-open', [url]);
   } catch {
     // If browser open fails, user sees the URL printed
   }
@@ -93,30 +93,49 @@ export async function login() {
   console.log('  ' + c.code(authUrl) + '\n');
   openBrowser(authUrl);
 
-  // 4. Ask for the 6-digit code
-  const pin = await prompt(c.spark('  ✦ Enter the 6-digit code from your browser: '));
+  // 4. Ask for the 6-digit code (max 3 attempts)
+  const MAX_PIN_ATTEMPTS = 3;
+  let session = null;
 
-  if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
-    printError('Invalid code. Please try again.');
-    await db.from('spark_cli_sessions').delete().eq('device_code', deviceCode);
-    process.exit(1);
+  for (let attempt = 1; attempt <= MAX_PIN_ATTEMPTS; attempt++) {
+    const pin = await prompt(c.spark(`  ✦ Enter the 6-digit code from your browser (attempt ${attempt}/${MAX_PIN_ATTEMPTS}): `));
+
+    if (!pin || !/^\d{6}$/.test(pin)) {
+      printError('Code must be exactly 6 digits.');
+      if (attempt === MAX_PIN_ATTEMPTS) {
+        await db.from('spark_cli_sessions').delete().eq('device_code', deviceCode);
+        process.exit(1);
+      }
+      continue;
+    }
+
+    // 5. Verify pin against DB
+    startSpinner('Verifying');
+    const { data: row, error: fetchErr } = await db
+      .from('spark_cli_sessions')
+      .select('*')
+      .eq('device_code', deviceCode)
+      .eq('pin', pin)
+      .eq('status', 'pin_ready')
+      .gte('expires_at', new Date().toISOString())
+      .single();
+    stopSpinner();
+
+    if (!fetchErr && row) {
+      session = row;
+      break;
+    }
+
+    if (attempt < MAX_PIN_ATTEMPTS) {
+      printError(`Incorrect code. ${MAX_PIN_ATTEMPTS - attempt} attempt(s) remaining.`);
+    } else {
+      printError('Too many incorrect attempts. Please run spark-code again to retry.');
+      await db.from('spark_cli_sessions').delete().eq('device_code', deviceCode);
+      process.exit(1);
+    }
   }
 
-  // 5. Verify pin against DB
-  startSpinner('Verifying');
-  const { data: session, error: fetchErr } = await db
-    .from('spark_cli_sessions')
-    .select('*')
-    .eq('device_code', deviceCode)
-    .eq('pin', pin)
-    .eq('status', 'pin_ready')
-    .gte('expires_at', new Date().toISOString())
-    .single();
-
-  stopSpinner();
-
-  if (fetchErr || !session) {
-    printError('Invalid or expired code. Please run spark-code again to retry.');
+  if (!session) {
     await db.from('spark_cli_sessions').delete().eq('device_code', deviceCode);
     process.exit(1);
   }

@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import {
   c, printSection, printTool, printError, printSuccess,
-  printInfo, printHelp, startSpinner, stopSpinner,
+  printInfo, printWarn, printHelp, startSpinner, stopSpinner,
   promptLine, startStarField, stopStarField,
 } from './ui.js';
 import { callAI, parseToolCall, isToolOnly } from './ai.js';
@@ -13,6 +13,11 @@ import {
   createAgentSession, logMessage, logBuild,
   closeAgentSession, fetchBuilds, getCurrentUser,
 } from './supabase.js';
+
+// ─── Strip tool blocks from untrusted content to prevent prompt injection ─────
+function sanitizeToolResult(text) {
+  return text.replace(/```tool[\s\S]*?```/g, '[tool block removed]');
+}
 
 // ─── Session state ────────────────────────────────────────────────────────────
 let cwd         = process.cwd();
@@ -112,6 +117,48 @@ async function handleCommand(input) {
       return true;
     }
 
+    case '/open': {
+      const target = parts.slice(1).join(' ');
+      if (!target) { printError('Usage: /open <file>'); return true; }
+      const abs = path.resolve(cwd, target);
+      if (!fs.existsSync(abs)) { printError(`Not found: ${abs}`); return true; }
+      try {
+        const { execFileSync } = await import('child_process');
+        const editor = process.env.EDITOR || process.env.VISUAL;
+        if (editor) {
+          execFileSync(editor, [abs], { stdio: 'inherit' });
+        } else {
+          const platform = process.platform;
+          if (platform === 'darwin')     execFileSync('open',     [abs]);
+          else if (platform === 'win32') execFileSync('cmd',      ['/c', 'start', '', abs]);
+          else                           execFileSync('xdg-open', [abs]);
+        }
+      } catch (e) { printError(`Could not open file: ${e.message}`); }
+      return true;
+    }
+
+    case '/run': {
+      const file = parts.slice(1).join(' ');
+      if (!file) { printError('Usage: /run <file>'); return true; }
+      const abs = path.resolve(cwd, file);
+      if (!fs.existsSync(abs)) { printError(`Not found: ${abs}`); return true; }
+      const ext = path.extname(file);
+      const runners = { '.js': 'node', '.ts': 'npx ts-node', '.py': 'python3', '.sh': 'bash', '.rb': 'ruby' };
+      const runner = runners[ext];
+      if (!runner) { printError(`No runner known for ${ext} files`); return true; }
+      const { execSync } = await import('child_process');
+      try {
+        const out = execSync(`${runner} "${abs}"`, { cwd, encoding: 'utf8', timeout: 120000 });
+        console.log(c.muted('  ┌─ output ──────────────────────────'));
+        out.split('\n').slice(0, 60).forEach(l => console.log(c.muted('  │ ') + l));
+        console.log(c.muted('  └──────────────────────────────────'));
+      } catch (e) {
+        printError(`Run failed: ${e.message.split('\n')[0]}`);
+        if (e.stdout || e.stderr) console.log(c.error((e.stdout + e.stderr).slice(0, 1000)));
+      }
+      return true;
+    }
+
     case '/logout':
       await logout();
       process.exit(0);
@@ -132,6 +179,23 @@ async function handleCommand(input) {
     default:
       return false;
   }
+}
+
+// ─── User confirmation for destructive tools ──────────────────────────────────
+function confirmDestructive(rl, toolCall) {
+  const DESTRUCTIVE = ['run_command', 'delete_file'];
+  if (!DESTRUCTIVE.includes(toolCall.tool)) return Promise.resolve(true);
+
+  const label = toolCall.tool === 'run_command'
+    ? `run: ${c.warn(toolCall.params?.cmd)}`
+    : `delete: ${c.error(toolCall.params?.path)}`;
+
+  return new Promise(resolve => {
+    rl.question(
+      `\n  ${c.warn('⚠ ')}${c.white.bold('Allow Spark to ' + label)}? ${c.muted('[y/N] ')}`,
+      answer => resolve(answer.trim().toLowerCase() === 'y')
+    );
+  });
 }
 
 // ─── Detect multi-step tasks (to trigger planning mode) ──────────────────────
@@ -158,7 +222,7 @@ function printBuildSummary(touched, cmds) {
 }
 
 // ─── Agentic turn (AI → tools → AI loop) ─────────────────────────────────────
-async function agentTurn(userInput) {
+async function agentTurn(userInput, rl) {
   messageCount++;
 
   history.push({ role: 'user', content: userInput });
@@ -199,6 +263,13 @@ async function agentTurn(userInput) {
     const toolCall = parseToolCall(aiResponse);
     if (!toolCall) break;
 
+    // Confirm destructive tools before executing
+    const allowed = await confirmDestructive(rl, toolCall);
+    if (!allowed) {
+      history.push({ role: 'user', content: `Tool (${toolCall.tool}) was denied by the user.` });
+      break;
+    }
+
     // Execute the tool
     toolHistory.push(toolCall);
     const result = await dispatchTool(toolCall, cwd);
@@ -213,9 +284,13 @@ async function agentTurn(userInput) {
       commandsRun.push(toolCall.params?.cmd);
     }
 
+    // Sanitize tool result to prevent prompt injection via file contents / URLs
+    const rawData = result.success ? result.data : result.error;
+    const safeData = sanitizeToolResult(rawData ?? '');
+
     const toolMsg = result.success
-      ? `Tool result (${toolCall.tool}):\n${result.data}`
-      : `Tool error (${toolCall.tool}): ${result.error}`;
+      ? `Tool result (${toolCall.tool}):\n${safeData}`
+      : `Tool error (${toolCall.tool}): ${safeData}`;
 
     history.push({ role: 'user', content: toolMsg });
 
@@ -281,7 +356,7 @@ export async function runREPL() {
 
       if (result === false) {
         // Not a slash command — treat as AI message
-        await agentTurn(input);
+        await agentTurn(input, rl);
       }
 
       ask();
