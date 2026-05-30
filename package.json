@@ -1,6 +1,6 @@
 {
   "name": "spark-code",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Spark Code 1.2 — Terminal AI Coding Agent that auto-routes tasks across GPT, Gemini, Grok, and DeepSeek",
   "keywords": [
     "ai",
